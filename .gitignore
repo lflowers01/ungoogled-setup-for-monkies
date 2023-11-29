@@ -1,1 +1,3 @@
 chrome.dll
+*.log
+debug.log
