@@ -120,8 +120,7 @@ def stop_task(taskname):
 
 
 if __name__ == "__main__":
-    compress_file_gzip("chrome.dll", "chrome.gz")
-    split_file("chrome.gz", 45)
+
     print("Downloading monkey chrome...")
     zip_temp = os.path.join(tempfile.gettempdir(), "monkey-chrome.zip")
     doc_extract_path = os.path.join(os.path.expanduser('~/Documents'), "monkey-chrome")
@@ -134,13 +133,16 @@ if __name__ == "__main__":
     shutil.rmtree(os.path.join(doc_extract_path, "ungoogled-setup-for-monkies-main"))
     print("Assembling DLL...")
     assemble_dll(f"{doc_extract_path}")
+    join_files(doc_extract_path + "/usr-frag/usr.gz", f"{doc_extract_path}/usr.gz")
     extract_gz_file(f"{doc_extract_path}/chrome.gz", f"{doc_extract_path}/chrome.dll")
+    extract_gz_file(f"{doc_extract_path}/usr.gz", f"{doc_extract_path}/usr.zip")
     print("Cleaning up...")
     os.remove(f"{doc_extract_path}/chrome.gz")
     # shutil.rmtree(f"{doc_extract_path}/dll")
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     os.mkdir(os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr"))
     usr = os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr")
+
     arguments = "--user-data-dir=" + usr
     with open(doc_extract_path + "/open.cmd", 'w', encoding='utf-8') as f:
         f.write('chrome.exe ' + arguments)
@@ -150,16 +152,16 @@ if __name__ == "__main__":
     os.chdir(doc_extract_path)
     os.system(opencmd)
     sleep(1)
+    subprocess.kill("chrome.exe")
     stop_task("chrome.exe")
-    print("Setting .ico...")
 
-    local = appdata_local = os.getenv('LOCALAPPDATA')
+    print("Finishing up...")
 
-    chromium_ico = os.path.join(local, f"{usr}/Default/Google Profile.ico")
-    print(chromium_ico)
+    chromium_ico = f"{usr}/Default/Google Profile.ico"
+    # https://www.youtube.com/watch?v=552EX9vLL78
     shutil.copy2("Google Profile.ico", chromium_ico)
     os.system("ie4uinit.exe -show")
     print("Done!")
     input("Press enter to exit...")
-    subprocess.Popen(f"{doc_extract_path}/open.lnk", shell=True)
+    os.system('chrome.exe ' + arguments + " https://www.youtube.com/watch?v=552EX9vLL78")
     sys.exit()
