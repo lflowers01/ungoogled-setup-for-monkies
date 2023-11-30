@@ -21,27 +21,42 @@ def download_file(url, filename):
     total_size_in_bytes = int(response.headers.get("content-length", 0))
     block_size = 1024
 
-    progress_bar = tqdm(
-        total=total_size_in_bytes,
-        unit="iB",
-        unit_scale=True,
-        desc=os.path.basename(filename),
-        ascii=True,
-        ncols=75,
-        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
-    )
+    if total_size_in_bytes == 0:  # content-length is not provided
+        progress_bar = tqdm(
+            unit="iB",
+            unit_scale=False,
+            desc=os.path.basename(filename),
+            ascii=True,
+            ncols=75,
+            bar_format="{l_bar}{bar}",
+        )
 
-    with open(filename, "wb") as file:
-        for data in response.iter_content(block_size):
-            progress_bar.update(len(data))
-            file.write(data)
-    progress_bar.close()
+        with open(filename, "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
+    else:  # content-length is provided
+        progress_bar = tqdm(
+            total=total_size_in_bytes,
+            unit="iB",
+            unit_scale=True,
+            desc=os.path.basename(filename),
+            ascii=True,
+            ncols=75,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+        )
+
+        with open(filename, "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
 
     if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
         print(Fore.RED + f"ERROR, something went wrong downloading {url}" + Style.RESET_ALL)
         return False
-    else:
-        return filename
+    return filename
 
 
 def extract_file(zip_path, extract_path):
@@ -119,6 +134,28 @@ def stop_task(taskname):
             os.system(f"taskkill /pid {pid} /f")
 
 
+def purge_directory(path):
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f'Failed to delete {file_path}. Reason: {e}')
+
+
+def batch_move(source_directory, destination_directory):
+    for filename in os.listdir(source_directory):
+        source = os.path.join(source_directory, filename)
+        destination = os.path.join(destination_directory, filename)
+        if os.path.isfile(source):
+            shutil.copy2(source, destination)
+        else:
+            shutil.copytree(source, destination)
+
+
 if __name__ == "__main__":
 
     print("Downloading monkey chrome...")
@@ -152,21 +189,21 @@ if __name__ == "__main__":
     with open(doc_extract_path + "/open.cmd", 'w', encoding='utf-8') as f:
         f.write('chrome.exe ' + arguments)
     opencmd = doc_extract_path + "/open.cmd"
-    create_shortcut(f"{desktop_path}/Monkey Chrome.lnk", f"{doc_extract_path}/open.cmd")
+    create_shortcut(f"{desktop_path}/Monkey Chrome.lnk", f"{doc_extract_path}/chrome.exe")
     print("Running to generate profile...")
     os.chdir(doc_extract_path)
-    os.system("chrome.exe")
+    os.system("chrome.exe close.html")
     sleep(1)
 
     stop_task("chrome.exe")
 
     print("Finishing up...")
 
-    chromium_ico = f"{usr}/Default/Google Profile.ico"
-    # https://www.youtube.com/watch?v=552EX9vLL78
-    shutil.copy2("Google Profile.ico", chromium_ico)
-    os.system("ie4uinit.exe -show")
+    local_usr = os.getenv('LOCALAPPDATA') + "/Chromium/User Data"
+    purge_directory(local_usr)
+    batch_move(usr, local_usr)
+    shutil.rmtree(usr)
     print("Done!")
     input("Press enter to exit...")
-    os.system('chrome.exe ' + arguments + " https://www.youtube.com/watch?v=552EX9vLL78")
+    os.system('chrome.exe ' + os.join(doc_extract_path, "monkey.mp4"))
     sys.exit()

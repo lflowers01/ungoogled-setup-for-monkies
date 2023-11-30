@@ -5,3 +5,4 @@ build
 dist
 usr
 chrome_original.dll
+*.spec
