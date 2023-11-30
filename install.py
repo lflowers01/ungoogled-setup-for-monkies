@@ -3,14 +3,16 @@ installer for monkey chrome
 '''
 import shutil
 import os
+import subprocess
 import zipfile
 import tempfile
+import sys
+from time import sleep
 import gzip
 import win32com.client
 import requests
 from tqdm import tqdm
 from colorama import Fore, Style
-import pefile
 
 
 def download_file(url, filename):
@@ -101,19 +103,32 @@ def assemble_dll(path):
     join_files(f"{path}/dll/chrome.gz", f"{path}/chrome.gz")
 
 
-def create_shortcut(path, target):
+def create_shortcut(path, target, args="None"):
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortCut(path)
     shortcut.Targetpath = target
+    shortcut.Arguments = args
     shortcut.save()
 
 
+def stop_task(taskname):
+    tasklist = subprocess.check_output('tasklist', shell=True).decode()
+    for task in tasklist.split('\n'):
+        if task.startswith(taskname):
+            pid = int(task.split()[1])
+            os.system(f"taskkill /pid {pid} /f")
+
+
 if __name__ == "__main__":
+    compress_file_gzip("chrome.dll", "chrome.gz")
+    split_file("chrome.gz", 45)
     print("Downloading monkey chrome...")
     zip_temp = os.path.join(tempfile.gettempdir(), "monkey-chrome.zip")
     doc_extract_path = os.path.join(os.path.expanduser('~/Documents'), "monkey-chrome")
     download_file("https://github.com/lflowers01/ungoogled-setup-for-monkies/archive/refs/heads/main.zip", zip_temp)
     print("Extracting files...")
+    if os.path.exists(doc_extract_path):
+        shutil.rmtree(doc_extract_path)
     extract_file(zip_temp, doc_extract_path)
     move_files(os.path.join(doc_extract_path, "ungoogled-setup-for-monkies-main"), doc_extract_path)
     shutil.rmtree(os.path.join(doc_extract_path, "ungoogled-setup-for-monkies-main"))
@@ -124,10 +139,27 @@ if __name__ == "__main__":
     os.remove(f"{doc_extract_path}/chrome.gz")
     # shutil.rmtree(f"{doc_extract_path}/dll")
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-    create_shortcut(f"{desktop_path}/monkey-chrome.lnk", f"{doc_extract_path}/chrome.exe")
+    os.mkdir(os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr"))
+    usr = os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr")
+    arguments = "--user-data-dir=" + usr
+    with open(doc_extract_path + "/open.cmd", 'w', encoding='utf-8') as f:
+        f.write('chrome.exe ' + arguments)
+    opencmd = doc_extract_path + "/open.cmd"
+    create_shortcut(f"{desktop_path}/Monkey Chrome.lnk", f"{doc_extract_path}/open.cmd")
+    print("Running to generate profile...")
+    os.chdir(doc_extract_path)
+    os.system(opencmd)
+    sleep(1)
+    stop_task("chrome.exe")
     print("Setting .ico...")
+
     local = appdata_local = os.getenv('LOCALAPPDATA')
-    chromium_ico = os.path.join(local, "Chromium/User Data/Default/Google Profile.ico")
+
+    chromium_ico = os.path.join(local, f"{usr}/Default/Google Profile.ico")
     print(chromium_ico)
     shutil.copy2("Google Profile.ico", chromium_ico)
+    os.system("ie4uinit.exe -show")
     print("Done!")
+    input("Press enter to exit...")
+    subprocess.Popen(f"{doc_extract_path}/open.lnk", shell=True)
+    sys.exit()

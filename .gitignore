@@ -3,3 +3,5 @@ chrome.dll
 debug.log
 build
 dist
+usr
+chrome_original.dll
