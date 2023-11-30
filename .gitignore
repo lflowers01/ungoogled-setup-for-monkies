@@ -1,3 +1,5 @@
 chrome.dll
 *.log
 debug.log
+build
+dist
