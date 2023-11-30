@@ -136,11 +136,16 @@ if __name__ == "__main__":
     join_files(doc_extract_path + "/usr-frag/usr.gz", f"{doc_extract_path}/usr.gz")
     extract_gz_file(f"{doc_extract_path}/chrome.gz", f"{doc_extract_path}/chrome.dll")
     extract_gz_file(f"{doc_extract_path}/usr.gz", f"{doc_extract_path}/usr.zip")
+    with zipfile.ZipFile(f"{doc_extract_path}/usr.zip", 'r') as zip_ref:
+        zip_ref.extractall(f"{doc_extract_path}")
     print("Cleaning up...")
     os.remove(f"{doc_extract_path}/chrome.gz")
-    # shutil.rmtree(f"{doc_extract_path}/dll")
+    os.remove(f"{doc_extract_path}/usr.gz")
+    os.remove(f"{doc_extract_path}/usr.zip")
+    shutil.rmtree(f"{doc_extract_path}/dll")
+    shutil.rmtree(f"{doc_extract_path}/usr-frag")
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-    os.mkdir(os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr"))
+    # os.mkdir(os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr"))
     usr = os.path.join(os.path.expanduser("~"), "Documents", "monkey-chrome", "usr")
 
     arguments = "--user-data-dir=" + usr
@@ -150,9 +155,9 @@ if __name__ == "__main__":
     create_shortcut(f"{desktop_path}/Monkey Chrome.lnk", f"{doc_extract_path}/open.cmd")
     print("Running to generate profile...")
     os.chdir(doc_extract_path)
-    os.system(opencmd)
+    os.system("chrome.exe")
     sleep(1)
-    subprocess.kill("chrome.exe")
+
     stop_task("chrome.exe")
 
     print("Finishing up...")
